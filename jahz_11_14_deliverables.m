@@ -1,14 +1,6 @@
 function jahz_11_14_deliverables()
 % main script for assignment 5 deliverables
-% generates:
-%  1) centroid path and printed equilibrium
-%  2) linear vs nonlinear comparison (small and large perturbations)
-%  3) modal analysis plots for 3 modes
-%  4) an .avi animation of the box vibrating in mode 1
-
-    %-----------------------------
     % system parameters and RK data
-    %-----------------------------
     box = make_box_params();        % struct with geometry and springs
     DP  = make_DP_tableau();        % Dormand–Prince 5(4) embedded RK
     p_ord   = 5;                    % order of higher method in pair
@@ -16,9 +8,7 @@ function jahz_11_14_deliverables()
     err_des = 1.0e-5;               % desired local error
     tspan   = [0 10];               % 10 seconds of motion
 
-    %-----------------------------
-    % 1) find an equilibrium
-    %-----------------------------
+   
     V_guess = [0; -0.2; 0; 0; 0; 0];     % [x;y;theta;vx;vy;vtheta]
     [V_eq, newton_hist] = newton_equilibrium(@(V) box_rate_func(0,V,box), V_guess);
 
@@ -38,17 +28,14 @@ function jahz_11_14_deliverables()
     text(0.4,0.25, sprintf('equilibrium found at [x y th] = [%.4f %.4f %.4f]', ...
         V_eq(1), V_eq(2), V_eq(3)));
 
-    %-----------------------------
-    % 2) linearization at equilibrium
-    %-----------------------------
+    % linearization at equilibrium
+
     A = J_approx(@(V) box_rate_func(0,V,box), V_eq);   % 6x6 Jacobian at eq
 
     % linear rate: d/dt ΔV = A (V - V_eq)
     lin_rate = @(t,V) A*(V - V_eq);
 
-    %-----------------------------
     % 3) linear vs nonlinear comparison
-    %-----------------------------
     eps_small = 0.02;   % small perturbation
     eps_large = 0.2;    % large perturbation
 
@@ -88,9 +75,7 @@ function jahz_11_14_deliverables()
     title('linear vs nonlinear from large perturbation');
     legend('location','best');
 
-    %-----------------------------
-    % 4) modal analysis
-    %-----------------------------
+    %modal analysis
     % A has block structure [0 I; -Q 0]
     Q = -A(4:6,1:3);
     [U_modes, Lambda] = eig(Q);
@@ -144,9 +129,8 @@ function jahz_11_14_deliverables()
         end
     end
 
-    %-----------------------------
-    % 5) create an .avi animation for mode 1
-    %-----------------------------
+
+    % create an .avi animation for mode 1
     mode1 = U_modes(:,1);
     V0_anim = V_eq + eps_mode*[mode1;0;0;0];
     [t_anim, V_anim] = rk_adaptive(@(t,V) box_rate_func(t,V,box), ...
@@ -155,9 +139,7 @@ function jahz_11_14_deliverables()
     record_animation_avi('mode1_box.avi', 30, t_anim, V_anim, box);
 end
 
-%====================================================================
 % helper: system parameters
-%====================================================================
 function box = make_box_params()
     % eight springs attaching a square box to a square frame
     m = 1;
@@ -185,9 +167,8 @@ function box = make_box_params()
     box.P_box    = Pb;
 end
 
-%====================================================================
-% helper: Dormand–Prince 5(4) Butcher tableau
-%====================================================================
+% Dormand–Prince 5(4) Butcher tableau
+
 function DP = make_DP_tableau()
     DP.C = [0, 1/5, 3/10, 4/5, 8/9, 1, 1];
     DP.B = [35/384, 0, 500/1113, 125/192, -2187/6784, 11/84, 0; ...
@@ -201,9 +182,7 @@ function DP = make_DP_tableau()
             35/384,0,500/1113,125/192,-2187/6784,11/84,0];
 end
 
-%====================================================================
 % spring force: 3D version (z component 0)
-%====================================================================
 function F = compute_spring_force(k,l0,PA,PB)
     % PA, PB 3x1 vectors
     r = PB - PA;
@@ -212,9 +191,7 @@ function F = compute_spring_force(k,l0,PA,PB)
     F = -k*(l - l0)*e_s;
 end
 
-%====================================================================
 % rigid body transform from box frame to world frame for points
-%====================================================================
 function Plist_world = compute_rbt(x,y,theta,Plist_box)
     R = [cos(theta), -sin(theta); ...
          sin(theta),  cos(theta)];
@@ -223,9 +200,7 @@ function Plist_world = compute_rbt(x,y,theta,Plist_box)
     Plist_world = R*Plist_box + rc*ones(1,N);
 end
 
-%====================================================================
 % acceleration at pose (x,y,theta)
-%====================================================================
 function [ax,ay,atheta] = accel_at_pose(x,y,theta,box)
     rc       = [x;y;0];
     m        = box.m;
@@ -256,9 +231,7 @@ function [ax,ay,atheta] = accel_at_pose(x,y,theta,box)
     atheta = sum(Ts)/I;
 end
 
-%====================================================================
 % rate function for full box dynamics
-%====================================================================
 function dVdt = box_rate_func(~,V,box)
     x = V(1);  y = V(2);  theta = V(3);
     vx = V(4); vy = V(5); vtheta = V(6);
@@ -267,9 +240,7 @@ function dVdt = box_rate_func(~,V,box)
     dVdt = [vx; vy; vtheta; ax; ay; atheta];
 end
 
-%====================================================================
 % embedded RK step for adaptive DP
-%====================================================================
 function [XB1, XB2, num_evals] = rk_step_embedded(rate,t,XA,h,BT)
     A = BT.A;
     B = BT.B;
@@ -303,9 +274,7 @@ function [XB, num_evals, h_next, redo] = rk_step_adaptive(rate,t,XA,h,BT,p,err_d
     end
 end
 
-%====================================================================
 % variable-step integration wrapper
-%====================================================================
 function [t_list,X_list,h_avg,num_fails,num_evals,h_rec] = ...
     rk_variable(rate,tspan,X0,h_ref,BT,p,err_des)
 
@@ -348,9 +317,8 @@ function [t_list,X_list] = rk_adaptive(rate,tspan,X0,h_ref,BT,p,err_des)
     [t_list,X_list,~,~,~,~] = rk_variable(rate,tspan,X0,h_ref,BT,p,err_des);
 end
 
-%====================================================================
+
 % Newton solver for equilibrium f(V) = 0
-%====================================================================
 function [V_eq, hist] = newton_equilibrium(f,V0)
     max_iter = 20;
     tol_step = 1e-10;
@@ -384,9 +352,7 @@ function J = J_approx(f,V)
     end
 end
 
-%====================================================================
 % AVI recorder: simple box + straight springs animation
-%====================================================================
 function record_animation_avi(filename, frame_rate, t_list, X_list, box_params)
 
     v = VideoWriter(filename, 'Motion JPEG AVI');
@@ -446,9 +412,7 @@ function record_animation_avi(filename, frame_rate, t_list, X_list, box_params)
     fprintf('AVI animation saved to %s\n', filename);
 end
 
-%====================================================================
-% spring plotting utilities (from handout)
-%====================================================================
+% spring plotting utilities
 function spring_plot_struct = initialize_spring_plot(num_zigs,w)
     spring_plot_struct = struct();
     zig_ending = [.25,.75,1; ...
