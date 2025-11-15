@@ -5,7 +5,7 @@ function jahz_11_14_deliverables()
     DP  = make_DP_tableau();        % Dormand–Prince 5(4) embedded RK
     p_ord   = 5;                    % order of higher method in pair
     h0      = 0.05;                 % initial step guess
-    err_des = 1.0e-5;               % desired local error
+    err_des = 1.0e-9;               % desired local error
     tspan   = [0 10];               % 10 seconds of motion
 
    
@@ -90,7 +90,7 @@ function jahz_11_14_deliverables()
         fprintf('  mode %d:  omega = %.3f\n', i, wn(i));
     end
 
-    eps_mode = 0.1;
+    eps_mode = 10^-1.8;
     t_mode = t_nl_sm;     % reuse same t-grid length via nonlinear sim
 
     figure;
@@ -357,7 +357,10 @@ function record_animation_avi(filename, frame_rate, t_list, X_list, box_params)
 
     v = VideoWriter(filename, 'Motion JPEG AVI');
     v.FrameRate = frame_rate;
+    spf = 1/frame_rate;
     open(v);
+    t_end = t_list(end);
+    tstart = tic;
 
     fig = figure('Color','white');
     axis equal; axis([-3 3 -3 3]); hold on;
@@ -369,8 +372,14 @@ function record_animation_avi(filename, frame_rate, t_list, X_list, box_params)
                         1   1  -1  -1   1];
 
     Pm_world = box_params.P_world;   % fixed anchors (2 x n)
-
-    for k = 1:length(t_list)
+    frame_index = 1;
+    t_frame = toc(tstart);
+    while t_frame <= t_end
+        while t_list(frame_index) <t_frame
+            frame_index = frame_index+1;
+        end
+    % for k = 1:length(t_list)
+        k = frame_index;
         x     = X_list(1,k);
         y     = X_list(2,k);
         theta = X_list(3,k);
@@ -404,6 +413,7 @@ function record_animation_avi(filename, frame_rate, t_list, X_list, box_params)
         drawnow;
         frame = getframe(fig);
         writeVideo(v, frame);
+        t_frame = toc(tstart);
     end
 
     close(v);
